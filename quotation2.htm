@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Quote generator</title>
+
+<style>
+
+/* ===== BACKGROUND (CHANGE LINE 10) ===== */
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #2b0000, #71112f); /* LINE 10 */
+}
+
+/* ===== HEADER (LOGO SECTION) ===== */
+.header {
+    display: flex;
+    align-items: center;
+    padding: 15px 30px;
+    background: linear-gradient(to right, #b78f8f, #7a0c2e); /* LINE 18 */
+}
+
+/* ===== LOGO ===== */
+.header img {
+    height: 120px; /* LINE 24 */
+    filter: brightness(1.2) contrast(1.2) drop-shadow(0px 2px 6px rgba(0,0,0,0.5));
+}
+
+/* ===== TITLE TEXT ===== */
+.header h1 {
+    color: white; /* LINE 31 */
+    margin-left: 15px;
+}
+
+/* ===== MAIN CARD ===== */
+.container {
+    max-width: 1000px;
+    margin: 30px auto;
+    background: rgba(255,255,255,0.95); /* LINE 39 */
+    padding: 25px;
+    border-radius: 15px;
+}
+
+/* ===== INPUT GRID ===== */
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+/* ===== INPUTS ===== */
+input, select {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+/* ===== BUTTON ===== */
+button {
+    margin-top: 15px;
+    padding: 12px;
+    width: 100%;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(to right, #7a0c2e, #cc0033); /* LINE 65 */
+    color: white;
+    font-weight: bold;
+}
+
+/* ===== TABLE ===== */
+table {
+    width: auto;              /* 🔥 important */
+    font-size: 13px;          /* smaller text */
+}
+
+  
+
+th {
+    background: #7a0c2e; /* LINE 79 */
+    color: white;
+    padding: 6px;
+}
+
+td {
+    padding: 4px 6px;         /* 🔥 compact */
+}
+
+
+/* ===== TOTAL BOX ===== */
+.total {
+    background: #ffe6e6; /* LINE 90 */
+    padding: 12px;
+    margin-top: 15px;
+    font-weight: bold;
+    border-left: 5px solid #7a0c2e; /* LINE 94 */
+}
+
+</style>
+
+</head>
+
+<body>
+
+<button onclick="copyQuote()">Copy Quote</button>
+
+<div class="header">
+    <img src="websitelogo.png">
+    <h1>Quotation Generator</h1>
+</div>
+<div class="container">
+
+<h2>Quotation Generator</h2>
+
+<div class="grid">
+    <div>
+        <label>Pax</label>
+        <input type="number" id="pax" value="2">
+    </div>
+
+    <div>
+        <label>Transfer Type</label>
+        <select id="type">
+            <option value="SIC">SIC</option>
+            <option value="PVT">PVT</option>
+        </select>
+    </div>
+</div>
+
+<h3>Select Cities & Nights</h3>
+
+<div>HCMC Nights: <input type="number" id="hcmc" value="1"></div>
+<div>Danang Nights: <input type="number" id="danang" value="1"></div>
+<div>Hanoi Nights: <input type="number" id="hanoi" value="1"></div>
+<div>Phu Quoc Nights: <input type="number" id="phuquoc" value="0"></div>
+
+<button onclick="generate()">Generate Quote</button>
+
+<div id="output"></div>
+
+</div>
+
+<script>
+function copyQuote() {
+
+    let table = document.getElementById("quoteTable");
+
+    let range = document.createRange();
+    range.selectNode(table);
+
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+
+    try {
+        document.execCommand("copy");
+        alert("✅ Table copied! Paste directly into Gmail.");
+    } catch (err) {
+        alert("❌ Copy failed");
+    }
+
+    window.getSelection().removeAllRanges();
+}
+
+
+// 🔥 MASTER COSTING (MATCH THIS WITH YOUR SHEET)
+const costing = {
+    hcmc: {
+        airport: 25,
+        hotel: 50,
+        tours: [
+            { name: "Cu Chi Tunnels Tour", price: 30 },
+            { name: "Mekong Delta Tour", price: 35 }
+        ]
+    },
+    danang: {
+        airport: 30,
+        hotel: 60,
+        tours: [
+            { name: "Ba Na Hills Tour", price: 45 },
+            { name: "Hoi An Ancient Town", price: 35 }
+        ]
+    },
+    hanoi: {
+        airport: 28,
+        hotel: 55,
+        tours: [
+            { name: "Halong Bay Day Trip", price: 50 },
+            { name: "Hanoi City Tour", price: 30 }
+        ]
+    },
+    phuquoc: {
+        airport: 35,
+        hotel: 70,
+        tours: [
+            { name: "4 Island Tour", price: 40 },
+            { name: "VinWonders + Cable Car", price: 55 }
+        ]
+    }
+};
+
+function generate() {
+
+    let pax = parseInt(document.getElementById("pax").value);
+    let type = document.getElementById("type").value;
+
+    let cities = ["hcmc","danang","hanoi","phuquoc"];
+
+    let selectedCities = cities.filter(city => 
+        parseInt(document.getElementById(city).value) > 0
+    );
+
+    let total = 0;
+    let day = 1;
+
+    let html = `
+    <div class="total">Generating quotation...</div>
+    <table id="quoteTable" style="
+    margin: 10px 0;
+    border-collapse: collapse;
+    font-family: Arial;
+">
+
+
+
+    <tr><th>Day</th><th>Service</th><th>Details</th></tr>
+    `;
+
+    selectedCities.forEach((city, index) => {
+
+        let nights = parseInt(document.getElementById(city).value);
+        let data = costing[city];
+        let multi = (type === "PVT") ? 1.5 : 1;
+
+        // ✅ FIRST CITY ARRIVAL
+        if (index === 0) {
+            total += data.transfer * pax * multi;
+
+            html += `
+            <tr>
+            <td><b>Day ${day}</b></td>
+            <td>${city.toUpperCase()} Airport Pickup</td>
+            <td>${type} Transfer</td>
+            </tr>`;
+            day++;
+        }
+
+        // ✅ HOTEL + TOURS
+        for (let i = 0; i < nights; i++) {
+
+            let hotelCost = data.hotel * pax;
+            total += hotelCost;
+
+            let tour = data.tours[i % data.tours.length];
+            let tourCost = tour.price * pax;
+            total += tourCost;
+
+            html += `
+            <tr>
+            <td>Day ${day}</td>
+            <td>${tour.name}</td>
+            <td>Hotel + Tour</td>
+            </tr>`;
+            day++;
+        }
+
+        // ✅ INTERCITY TRANSFER (between cities)
+        if (index < selectedCities.length - 1) {
+            let nextCity = selectedCities[index + 1];
+
+            html += `
+            <tr>
+            <td>Day ${day}</td>
+            <td>Flight from ${city.toUpperCase()} → ${nextCity.toUpperCase()}</td>
+            <td>Intercity Transfer</td>
+            </tr>`;
+            day++;
+        }
+
+        // ✅ LAST CITY DEPARTURE
+        if (index === selectedCities.length - 1) {
+            total += data.transfer * pax * multi;
+
+            html += `
+            <tr>
+            <td>Day ${day}</td>
+            <td>${city.toUpperCase()} Airport Drop</td>
+            <td>${type} Transfer</td>
+            </tr>`;
+            day++;
+        }
+
+    });
+
+    html += `</table>`;
+
+    html = `
+    <div class="total">
+        💰 Total Quotation: $${total}
+    </div>
+    ` + html;
+
+    document.getElementById("output").innerHTML = html;
+}
+
+
+//     html += `</table>`;
+
+//     html = `
+//     <div class="total">
+//         💰 Total Quotation: $${total}
+//     </div>
+//     ` + html;
+
+//     document.getElementById("output").innerHTML = html;
+// }
+
+// </script>
+
+
+</body>
+</html>
